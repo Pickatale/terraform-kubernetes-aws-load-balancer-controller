@@ -409,29 +409,6 @@ resource "helm_release" "alb_controller" {
   depends_on = [var.alb_controller_depends_on]
 }
 
-# Generate a kubeconfig file for the EKS cluster to use in provisioners
-data "template_file" "kubeconfig" {
-  template = <<-EOF
-    apiVersion: v1
-    kind: Config
-    current-context: terraform
-    clusters:
-    - name: ${data.aws_eks_cluster.selected[0].name}
-      cluster:
-        certificate-authority-data: ${data.aws_eks_cluster.selected[0].certificate_authority.0.data}
-        server: ${data.aws_eks_cluster.selected[0].endpoint}
-    contexts:
-    - name: terraform
-      context:
-        cluster: ${data.aws_eks_cluster.selected[0].name}
-        user: terraform
-    users:
-    - name: terraform
-      user:
-        token: ${data.aws_eks_cluster_auth.selected[0].token}
-  EOF
-}
-
 # Since the kubernetes_provider cannot yet handle CRDs, we need to set any
 # supplied TargetGroupBinding using a null_resource.
 #
@@ -444,7 +421,12 @@ resource "null_resource" "supply_target_group_arns" {
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     environment = {
-      KUBECONFIG = base64encode(data.template_file.kubeconfig.rendered)
+      KUBECONFIG = base64encode(templatefile("${path.module}/kubeconfig.tmpl", {
+        name = data.aws_eks_cluster.selected[0].name,
+        ca_data = data.aws_eks_cluster.selected[0].certificate_authority.0.data,
+        endpoint = data.aws_eks_cluster.selected[0].endpoint,
+        token = data.aws_eks_cluster_auth.selected[0].token
+      }))
     }
     command = <<-EOF
       cat <<YAML | kubectl -n ${var.k8s_namespace} --kubeconfig <(echo $KUBECONFIG | base64 --decode) apply -f -
