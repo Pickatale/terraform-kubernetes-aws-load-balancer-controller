@@ -92,6 +92,7 @@ resource "aws_iam_policy" "this" {
                   "iam:CreateServiceLinkedRole",
                   "ec2:DescribeAccountAttributes",
                   "ec2:DescribeAddresses",
+                  "ec2:DescribeAvailabilityZones",
                   "ec2:DescribeInternetGateways",
                   "ec2:DescribeVpcs",
                   "ec2:DescribeSubnets",
@@ -99,6 +100,8 @@ resource "aws_iam_policy" "this" {
                   "ec2:DescribeInstances",
                   "ec2:DescribeNetworkInterfaces",
                   "ec2:DescribeTags",
+                  "ec2:GetCoipPoolUsage",
+                  "ec2:DescribeCoipPools",
                   "elasticloadbalancing:DescribeLoadBalancers",
                   "elasticloadbalancing:DescribeLoadBalancerAttributes",
                   "elasticloadbalancing:DescribeListeners",
@@ -233,6 +236,19 @@ resource "aws_iam_policy" "this" {
                       "aws:ResourceTag/elbv2.k8s.aws/cluster": "false"
                   }
               }
+          },
+          {
+              "Effect": "Allow",
+              "Action": [
+                  "elasticloadbalancing:AddTags",
+                  "elasticloadbalancing:RemoveTags"
+              ],
+              "Resource": [
+                  "arn:aws:elasticloadbalancing:*:*:listener/net/*/*/*",
+                  "arn:aws:elasticloadbalancing:*:*:listener/app/*/*/*",
+                  "arn:aws:elasticloadbalancing:*:*:listener-rule/net/*/*/*",
+                  "arn:aws:elasticloadbalancing:*:*:listener-rule/app/*/*/*"
+              ]
           },
           {
               "Effect": "Allow",
